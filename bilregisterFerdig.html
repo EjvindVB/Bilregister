@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Bilregister</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/foundation/6.4.3/css/foundation.css">
+</head>
+<body>
+<script src="https://www.gstatic.com/firebasejs/4.10.1/firebase.js"></script>
+<script>
+    // Initialize Firebase
+    var config = {
+        apiKey: "AIzaSyAD0Z3VzG2VIsrxPTIGwV9jhwjq5EBPovY",
+        authDomain: "kode1-70d4b.firebaseapp.com",
+        databaseURL: "https://kode1-70d4b.firebaseio.com",
+        projectId: "kode1-70d4b",
+        storageBucket: "kode1-70d4b.appspot.com",
+        messagingSenderId: "1076270465606"
+    };
+    firebase.initializeApp(config);
+</script>
+
+<form action="" id="skjemaBilmodell">
+    <label for="inpBilmerke">Bilmerke</label>
+    <input type="text" id="inpBilmerke" required>
+    <label for="inpBilmodell">Bilmodell</label>
+    <input type="text" id="inpBilmodell" required>
+    <button class="button">OK</button>
+</form>
+
+<form action="" id="skjemaBilregister">
+    <label for="inpEier">Eier</label>
+    <input type="text" id="inpEier" required>
+    <label for="inpKjennemerke">Kjennemerke</label>
+    <input type="text" id="inpKjennemerke" required>
+    <label for="selBilmodell">Bilmodell</label>
+    <select id="selBilmodell"></select>
+    <button class="button">OK</button>
+</form>
+
+<table>
+    <thead>
+        <tr><th>Eier</th><th>Bilmodell</th><th>Bilmerke</th><th>Kjennmerke</th></tr>
+    </thead>
+    <tbody id="txtTabell"></tbody>
+</table>
+<script>
+
+    // Hente HTML-objektene
+    var inpBilmerke = document.getElementById("inpBilmerke");
+    var inpBilmodell = document.getElementById("inpBilmodell");
+    var skjemaBilmodell = document.getElementById("skjemaBilmodell");
+    var inpEier = document.getElementById("inpEier");
+    var inpKjennemerke = document.getElementById("inpKjennemerke");
+    var selBilmodell = document.getElementById("selBilmodell");
+    var skjemaBilregister = document.getElementById("skjemaBilregister");
+    var txtTabell = document.getElementById("txtTabell");
+
+    // Variabel til databasen
+    var database = firebase.database();
+    var bilmodellerDB = database.ref("bilmodeller");
+    var bilregisterDB = database.ref("bilregister");
+
+    // Lokal bilmodell-database
+    var lokalBilmodeller = {};
+
+    // Lytterfunksjon for å legge til en bilodell
+    function leggTilBilmodell(event){
+        event.preventDefault();
+
+        // Henter ut verdier fra skjemaet
+        var bilmodell = inpBilmodell.value;
+        var bilmerke = inpBilmerke.value;
+
+        // Nullstiller verdier i skjemaet
+        inpBilmodell.value = "";
+        inpBilmerke.value = "";
+
+        console.log("Hipp hopp");
+
+        // Legger inn ny bilmodell med gitt primærnøkkel
+        var nyBilmodell = database.ref("bilmodeller/" + bilmodell);
+
+        // Setter data i den nye bilmodellen
+        nyBilmodell.set(
+            {"bilmerke": bilmerke}
+        );
+    }
+
+    // Lytterfunksjon som lytter på at en bilmodell blir lagt til i firebase
+    function hentBilmodell(snapshot){
+
+        var bilmodell = snapshot.key; // Henter primærnøkkelen til dataene
+        var nyBil1 = snapshot.val();   // Henter all data for bilmodellen
+
+        selBilmodell.innerHTML += `<option value="${bilmodell}">${nyBil1.bilmerke} ${bilmodell}</option>`;
+
+        lokalBilmodeller[bilmodell] = nyBil1;
+    }
+
+    // Lytterfunksjon for å registrere en bil fra skjema
+    function registrerBil(event){
+        event.preventDefault();
+
+        // Henter ut verdier fra skjemaet
+        var eier = inpEier.value;
+        var kjennemerke = inpKjennemerke.value;
+        var bilmodell = selBilmodell.value;
+
+        inpEier.value = "";
+        inpKjennemerke.value = "";
+
+        // Lager et nytt objekt med gitt primærnøkkel
+        var nyBil = database.ref("bilregister/" + kjennemerke);
+
+        // Legger inn data i det nye objektet
+        nyBil.set(
+            {
+                "eier" : eier,
+                "bilmodell" : bilmodell
+            }
+        );
+    }
+
+    // Lytterfunskjon som lytter på at en bil blir registrert i bilregister
+    function hentBilregister(snapshot){
+
+        var kjennemerke = snapshot.key;
+        var nybil3 = snapshot.val();
+        var bilmodell2 = nybil3.bilmodell; // nybil3["bilmodell"]
+        var eier = nybil3.eier;
+        var bilmerke = lokalBilmodeller[bilmodell2].bilmerke;
+
+        txtTabell.innerHTML += `<tr>
+<td>${eier}</td><td>${bilmodell2}</td><td>${bilmerke}</td><td>${kjennemerke}</td>
+</tr>`;
+
+    }
+
+    // Registrerer lytter funksjonene
+    skjemaBilmodell.onsubmit = leggTilBilmodell;
+    skjemaBilregister.onsubmit = registrerBil;
+
+    bilmodellerDB.on("child_added", hentBilmodell);
+    bilregisterDB.on("child_added", hentBilregister);
+
+
+</script>
+</body>
+</html>
